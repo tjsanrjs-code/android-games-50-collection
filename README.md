@@ -1,17 +1,5 @@
-# 50 Android Mini Games Collection
+# Neo Breakout Chain Gravity
 
-Auto generated and maintained by Grok with **quality-first** approach.
+Grok가 제작한 혁신적인 벽돌 게임
 
-Currently implementing **5 games at a time** in high quality mode.
-
-## First Batch (High Quality)
-1. Tic-Tac-Toe (with AI)
-2. Snake
-3. Pong
-4. Flappy Bird
-5. Memory Match
-
-More games coming soon.
-
-## How to build and run
-See below for PC testing instructions.
+AdMob 수익형 광고 + Google Play 배포 준비 완료
