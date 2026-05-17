@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Neo Breakout v3 - Chain Gravity + Power-ups (Grok 제작)</title>
+<style>
+body { margin:0; background:#0a0a1f; display:flex; justify-content:center; align-items:center; height:100vh; font-family:Arial; overflow:hidden; }
+canvas { background:#111133; border:5px solid #00ffcc; box-shadow:0 0 40px #00ffcc; }
+#ui { position:absolute; top:20px; left:20px; color:#00ffcc; font-size:20px; text-shadow:0 0 15px #00ffcc; pointer-events:none; }
+</style>
+</head>
+<body>
+<div id="ui">점수: 0 | 볼: 3 | 콤보: 0 | 파워업: -</div>
+<canvas id="game" width="800" height="600"></canvas>
+
+<script>
+// Neo Breakout v3 - Grok 제작 (Power-ups + Chain + Gravity)
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+let score = 0, lives = 3, combo = 0;
+let paddle = {x: 340, y: 550, width: 120, height: 15};
+let balls = [{x: 400, y: 400, radius: 9, dx: 4.5, dy: -5.5, gravity: 0.08}];
+let bricks = [];
+let particles = [];
+let powerUps = [];
+
+const rows = 7, cols = 10;
+const brickW = 68, brickH = 22;
+
+for (let r = 0; r < rows; r++) {
+  for (let c = 0; c < cols; c++) {
+    bricks.push({
+      x: c * (brickW + 12) + 45,
+      y: r * (brickH + 12) + 80,
+      w: brickW,
+      h: brickH,
+      visible: true,
+      hp: r < 3 ? 1 : 2,
+      color: r < 3 ? '#ff0088' : '#00aaff',
+      type: r < 3 ? 'normal' : 'hard'
+    });
+  }
+}
+
+function createParticle(x, y, color = '#ffcc00') {
+  for (let i = 0; i < 15; i++) {
+    particles.push({ x, y, vx: Math.random()*8-4, vy: Math.random()*8-6, life: 40, color });
+  }
+}
+
+function spawnPowerUp(x, y) {
+  const types = ['multiball', 'bigpaddle', 'slowtime', 'shield'];
+  powerUps.push({
+    x, y,
+    type: types[Math.floor(Math.random()*types.length)],
+    vy: 2
+  });
+}
+
+let keys = {};
+document.addEventListener('keydown', e => keys[e.key] = true);
+document.addEventListener('keyup', e => keys[e.key] = false);
+
+function loop() {
+  ctx.fillStyle = 'rgba(10,10,31,0.9)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Paddle
+  if (keys['ArrowLeft'] || keys['a']) paddle.x -= 9;
+  if (keys['ArrowRight'] || keys['d']) paddle.x += 9;
+  paddle.x = Math.max(0, Math.min(canvas.width - paddle.width, paddle.x));
+  ctx.fillStyle = '#00ffcc';
+  ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+
+  // Balls
+  for (let i = balls.length-1; i>=0; i--) {
+    let b = balls[i];
+    b.x += b.dx; b.y += b.dy; b.dy += b.gravity;
+
+    if (b.x - b.radius < 0 || b.x + b.radius > canvas.width) b.dx = -b.dx;
+    if (b.y - b.radius < 0) b.dy = -b.dy;
+
+    if (b.y + b.radius > paddle.y && b.y - b.radius < paddle.y + paddle.height && b.x > paddle.x && b.x < paddle.x + paddle.width) {
+      b.dy = -Math.abs(b.dy) - 1;
+      b.dx = (b.x - (paddle.x + paddle.width/2)) * 0.2;
+      combo++;
+    }
+
+    for (let j = bricks.length-1; j>=0; j--) {
+      let br = bricks[j];
+      if (br.visible && b.x > br.x && b.x < br.x+br.w && b.y > br.y && b.y < br.y+br.h) {
+        br.hp--;
+        if (br.hp <= 0) {
+          br.visible = false;
+          score += 10 * (combo+1);
+          createParticle(br.x + br.w/2, br.y + br.h/2, br.color);
+          if (Math.random() < 0.5) spawnPowerUp(br.x + br.w/2, br.y + br.h/2);
+          if (Math.random() < 0.3) {
+            for (let k=0; k<bricks.length; k++) if (bricks[k].visible && Math.random()<0.5) {
+              bricks[k].visible = false; score += 5; createParticle(bricks[k].x+bricks[k].w/2, bricks[k].y+bricks[k].h/2);
+            }
+          }
+        }
+        b.dy = -b.dy;
+        break;
+      }
+    }
+
+    if (b.y > canvas.height) { balls.splice(i,1); if(!balls.length && lives>0){ lives--; balls.push({x:400,y:400,radius:9,dx:4.5,dy:-5.5,gravity:0.08}); } }
+  }
+
+  // Power-ups
+  for (let i=powerUps.length-1; i>=0; i--) {
+    let p = powerUps[i];
+    p.y += p.vy;
+    ctx.fillStyle = '#ffff00';
+    ctx.fillRect(p.x-8, p.y-8, 16, 16);
+    if (p.y > paddle.y && p.x > paddle.x && p.x < paddle.x + paddle.width) {
+      if (p.type === 'multiball') balls.push({x:paddle.x+paddle.width/2, y:paddle.y-20, radius:8, dx: (Math.random()*6-3), dy:-6, gravity:0.08});
+      if (p.type === 'bigpaddle') paddle.width = 180;
+      if (p.type === 'slowtime') { /* slow effect */ }
+      powerUps.splice(i,1);
+    }
+    if (p.y > canvas.height) powerUps.splice(i,1);
+  }
+
+  // Draw bricks & particles
+  for (let br of bricks) if (br.visible) { ctx.fillStyle=br.color; ctx.fillRect(br.x,br.y,br.w,br.h); }
+  for (let i=particles.length-1;i>=0;i--) { /* particle draw */ let p=particles[i]; p.x+=p.vx; p.y+=p.vy; p.life--; ctx.fillStyle=p.color; ctx.globalAlpha=p.life/40; ctx.fillRect(p.x,p.y,5,5); if(p.life<=0) particles.splice(i,1); }
+  ctx.globalAlpha=1;
+
+  document.getElementById('ui').innerHTML = `점수: ${score} | 볼: ${lives} | 콤보: ${combo}x`;
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
