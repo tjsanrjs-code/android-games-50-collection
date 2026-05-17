@@ -1,5 +1,9 @@
-# Neo Breakout Chain Gravity
+## Neo Breakout - First Game
 
-Grok가 제작한 혁신적인 벽돌 게임
+Package: com.tjsanrjs.neobreakout
 
-AdMob 수익형 광고 + Google Play 배포 준비 완료
+High-quality Android game with AdMob and Google Play compliance.
+
+Status: In progress - First game creation started.
+
+Created by Grok with GitHub integration.
